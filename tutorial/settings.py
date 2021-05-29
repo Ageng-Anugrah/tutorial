@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,8 +32,8 @@ PRODUCTION = os.environ.get("PRODUCTION", False) == "true"
 DEBUG = not PRODUCTION
 
 ALLOWED_HOSTS = [
-    "localhost", 
-    "127.0.0.1", 
+    "localhost",
+    "127.0.0.1",
     "ptibem.cs.ui.ac.id"
 ]
 
@@ -46,11 +47,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'crispy_forms',
+    'django_cas_ng',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_auth',
     'rest_auth.registration',
     'corsheaders',
+    'app_auth',
+    'app_profile',
 ]
 
 MIDDLEWARE = [
@@ -63,6 +68,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'app_auth.sso_backends.SSOCASBackend', # Dari app_auth
+)
 
 ROOT_URLCONF = 'tutorial.urls'
 
@@ -109,15 +119,40 @@ else:
 
 
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": (),
+    "DEFAULT_PERMISSION_CLASSES": (
+        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAdminUser',
+        ),
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.TokenAuthentication",
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ),
 }
+
+ # JWT config
+JWT_AUTH = {
+    'JWT_SECRET_KEY': 'SECRET_KEY',
+    'JWT_PUBLIC_KEY':  None,
+    'JWT_PRIVATE_KEY': None,
+    'JWT_ALGORITHM': 'HS256',
+    'JWT_VERIFY': True,
+    'JWT_VERIFY_EXPIRATION': True,
+    'JWT_LEEWAY': 0,
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
+    # Handler dari app_auth
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'app_auth.sso_jwt.jwt_response_payload_handler',
+    'JWT_PAYLOAD_HANDLER': 'app_auth.sso_jwt.jwt_payload_handler',
+}
+
 
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
+AUTH_USER_MODEL = 'app_auth.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -165,3 +200,17 @@ CORS_ORIGIN_WHITELIST = [
 URL_PREFIX = os.environ.get("URL_PREFIX", "")
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = f'{URL_PREFIX}/media/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Django CAS-NG configuration
+CAS_SERVER = os.environ.get("CAS_SERVER", 'CAS 2')
+CAS_SERVER_URL = os.environ.get("CAS_SERVER_URL", 'https://sso.ui.ac.id/cas2/')
+CAS_POPUP_LOGIN = os.environ.get("CAS_POPUP_LOGIN", False)
+CAS_FORCE_CHANGE_USERNAME_CASE = 'lower'
+CAS_LOGOUT_COMPLETELY = True
+CAS_CREATE_USER = True
+CAS_APPLY_ATTRIBUTES_TO_USER = True
+# Where to send a user after logging in or out if there is no referrer and no next page set.
+CAS_REDIRECT_URL = os.environ.get("CAS_REDIRECT_URL", 'https://www.google.com/')
+CLIENT_HOST = os.environ.get("CLIENT_HOST", 'https://www.google.com/')
