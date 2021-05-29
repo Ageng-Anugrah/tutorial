@@ -11,16 +11,13 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 # Create your views here.
 
 class VerifyJWTAPIVIEW(APIView):
-    permission_classes = (AllowAny, IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsAdminUser)
     authentication_class = JSONWebTokenAuthentication
     
     def post(self, request):
         try:
-            print(request)
-            print("AAAAAAAAAA")
             token = request.data['jwt_token']
             jwt_decode_handler = api_settings.JWT_DECODE_HANDLER
-            print(token)
 
             user_data = jwt_decode_handler(token)
             try:
